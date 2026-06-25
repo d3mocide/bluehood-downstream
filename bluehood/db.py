@@ -2,11 +2,23 @@
 
 import json
 import aiosqlite
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 from typing import Optional
 from dataclasses import dataclass
 
 from .config import DB_PATH, HEARTBEAT_URL, HEARTBEAT_INTERVAL, PRUNE_DAYS
+
+
+def utcnow() -> datetime:
+    """Current time as a naive UTC datetime.
+
+    Timestamps are stored in the database and served to clients as UTC (the web
+    layer tags them with a 'Z' suffix). Every 'now' used for storage or for
+    comparing against stored timestamps must therefore be UTC too, independent
+    of the container's TZ — otherwise the offset shows up as a skew (e.g. every
+    device looking like it was "7h ago" in a UTC-7 zone).
+    """
+    return datetime.now(timezone.utc).replace(tzinfo=None)
 
 
 @dataclass
@@ -313,7 +325,7 @@ async def get_devices_page(
 
 async def get_dashboard_stats(include_ignored: bool = True) -> dict:
     """Get dashboard stats and server-side filter counts without loading all rows."""
-    now = datetime.now()
+    now = utcnow()
     today_start = datetime.combine(now.date(), datetime.min.time())
     one_hour_ago = now - timedelta(hours=1)
 
@@ -373,7 +385,7 @@ async def get_dashboard_stats(include_ignored: bool = True) -> dict:
 
 async def get_global_stats(include_ignored: bool = True) -> dict:
     """Get global device totals without loading full row data."""
-    today_start = datetime.combine(datetime.now().date(), datetime.min.time()).isoformat()
+    today_start = datetime.combine(utcnow().date(), datetime.min.time()).isoformat()
     where_clause = "" if include_ignored else "WHERE ignored = 0"
 
     query = f"""
@@ -413,7 +425,7 @@ async def upsert_device(
 
     Returns tuple of (device, is_new) where is_new indicates first sighting.
     """
-    now = datetime.now()
+    now = utcnow()
     uuids_json = json.dumps(service_uuids) if service_uuids else None
 
     async with aiosqlite.connect(DB_PATH) as db:
