@@ -152,7 +152,8 @@ The web dashboard will be available at **http://localhost:8080**
 |----------|---------|-------------|
 | `PUID` | `1000` | UID for the container user — set to match your host user (`id -u`) when using bind mounts |
 | `PGID` | `1000` | GID for the container user — set to match your host group (`id -g`) when using bind mounts |
-| `TZ` | UTC | Container timezone (e.g., `Europe/London`) |
+| `TZ` | browser local | IANA timezone used to render dashboard timestamps (e.g., `America/Los_Angeles`). Must be an exact IANA name; an invalid name is ignored (logged) and the browser's local time is used. |
+| `BLUEHOOD_WEB_PORT` | `8080` | Web dashboard port. Useful in host network mode where you can't remap ports via Docker. |
 | `BLUEHOOD_ADAPTER` | auto | Bluetooth adapter for BLE scanning (e.g., `hci0`) |
 | `BLUEHOOD_CLASSIC_ADAPTER` | same as `BLUEHOOD_ADAPTER` | Separate adapter for classic Bluetooth scanning (e.g., `hci1`). When set to a different adapter, BLE and classic scans run concurrently. |
 | `BLUEHOOD_DATA_DIR` | `/data` | Database storage directory |

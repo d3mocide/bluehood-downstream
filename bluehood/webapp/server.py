@@ -8,7 +8,7 @@ from datetime import datetime, timedelta
 
 from aiohttp import web
 
-from .. import db
+from .. import config, db
 from ..classifier import classify_device, get_type_icon, get_type_label, get_all_types, is_randomized_mac, is_macos_uuid, get_uuid_names
 from ..patterns import generate_hourly_heatmap, generate_daily_heatmap
 from .templates import ABOUT_TEMPLATE, HTML_TEMPLATE, LOGIN_TEMPLATE, SETTINGS_TEMPLATE
@@ -129,7 +129,8 @@ class WebServer:
 
     async def index(self, request: web.Request) -> web.Response:
         """Serve the main dashboard."""
-        return web.Response(text=HTML_TEMPLATE, content_type="text/html")
+        html = HTML_TEMPLATE.replace("__BLUEHOOD_TIMEZONE__", config.DISPLAY_TIMEZONE or "")
+        return web.Response(text=html, content_type="text/html")
 
     async def login_page(self, request: web.Request) -> web.Response:
         """Serve the login page."""

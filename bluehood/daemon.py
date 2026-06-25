@@ -15,7 +15,7 @@ from typing import Optional
 import aiohttp
 
 from . import db, __version__
-from .config import SCAN_INTERVAL, SOCKET_PATH, METRICS_PORT
+from .config import SCAN_INTERVAL, SOCKET_PATH, METRICS_PORT, WEB_PORT
 from .scanner import BluetoothScanner, ScannedDevice, list_adapters
 from .web import WebServer
 from .notifications import NotificationManager
@@ -479,8 +479,8 @@ def main() -> None:
     parser.add_argument(
         "-p", "--port",
         type=int,
-        default=8080,
-        help="Web dashboard port (default: 8080)"
+        default=WEB_PORT,
+        help="Web dashboard port (default: 8080, env: BLUEHOOD_WEB_PORT)"
     )
     parser.add_argument(
         "--metrics-port",

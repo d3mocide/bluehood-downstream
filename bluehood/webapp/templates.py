@@ -1053,6 +1053,36 @@ HTML_TEMPLATE = """
 
         applyTheme(localStorage.getItem('bluehood_theme') || 'dark');
 
+        // Display timezone injected by the server from the TZ env var.
+        // Empty string -> null -> fall back to the browser's local time.
+        let APP_TIMEZONE = "__BLUEHOOD_TIMEZONE__" || null;
+        if (APP_TIMEZONE) {
+            try {
+                new Date().toLocaleString('en-US', { timeZone: APP_TIMEZONE });
+            } catch (e) {
+                console.warn('Invalid display timezone, using browser local time:', APP_TIMEZONE);
+                APP_TIMEZONE = null;
+            }
+        }
+
+        // Merge the configured timezone into Intl date-format options so all
+        // timestamps render in the same zone regardless of the viewer's browser.
+        function tzOpts(extra) {
+            const o = Object.assign({}, extra || {});
+            if (APP_TIMEZONE) o.timeZone = APP_TIMEZONE;
+            return o;
+        }
+
+        // UTC offset (in hours) for the active display timezone, used to bucket
+        // server-side UTC hourly data into local hours for the heatmap.
+        function tzOffsetHours() {
+            if (!APP_TIMEZONE) return -(new Date().getTimezoneOffset() / 60);
+            const now = new Date();
+            const utc = new Date(now.toLocaleString('en-US', { timeZone: 'UTC' }));
+            const local = new Date(now.toLocaleString('en-US', { timeZone: APP_TIMEZONE }));
+            return Math.round((local - utc) / 3600000);
+        }
+
         const PAGE_SIZE_OPTIONS = [25, 50, 100, 150, 250];
         const PAGE_SIZE_STORAGE_KEY = 'bluehood_page_size_v2';
 
@@ -1213,7 +1243,7 @@ HTML_TEMPLATE = """
                 updatePaginationUI();
                 if (!dateFilteredDevices) renderDevices();
                 updateSelectionUI();
-                document.getElementById('last-update').textContent = new Date().toLocaleTimeString();
+                document.getElementById('last-update').textContent = new Date().toLocaleTimeString([], tzOpts());
             } catch (error) {
                 console.error('Scan error:', error);
             }
@@ -1682,7 +1712,7 @@ HTML_TEMPLATE = """
             if (!isoString) return { text: '—', tooltip: '' };
             const date = new Date(isoString);
             const now = new Date();
-            const tooltip = date.toLocaleString();
+            const tooltip = date.toLocaleString([], tzOpts());
             const diffMins = Math.floor((now - date) / 60000);
             let text;
             if (diffMins < 1) text = 'NOW';
@@ -1693,9 +1723,9 @@ HTML_TEMPLATE = """
                 text = m > 0 ? h + 'h ' + m + 'm ago' : h + 'h ago';
             } else {
                 const diffDays = Math.floor(diffMins / 1440);
-                if (diffDays === 1) text = 'Yesterday ' + date.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                if (diffDays === 1) text = 'Yesterday ' + date.toLocaleTimeString([], tzOpts({ hour: '2-digit', minute: '2-digit' }));
                 else if (diffDays < 7) text = diffDays + 'd ago';
-                else text = date.toLocaleDateString();
+                else text = date.toLocaleDateString([], tzOpts());
             }
             return { text, tooltip };
         }
@@ -1749,8 +1779,8 @@ HTML_TEMPLATE = """
                 '<div class="detail-item"><div class="detail-label">Classification</div><div class="detail-value">' + data.type_label + '</div></div>' +
                 '<div class="detail-item"><div class="detail-label">Vendor OUI</div><div class="detail-value">' + (d.vendor || '—') + '</div></div>' +
                 '<div class="detail-item"><div class="detail-label">Proximity Zone</div><div class="detail-value" style="color: ' + proximityColor + '; text-transform: uppercase;">' + proximityZone + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">First Contact</div><div class="detail-value mono">' + (d.first_seen ? new Date(d.first_seen).toLocaleString() : '—') + '</div></div>' +
-                '<div class="detail-item"><div class="detail-label">Last Contact</div><div class="detail-value mono">' + (d.last_seen ? new Date(d.last_seen).toLocaleString() : '—') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">First Contact</div><div class="detail-value mono">' + (d.first_seen ? new Date(d.first_seen).toLocaleString([], tzOpts()) : '—') + '</div></div>' +
+                '<div class="detail-item"><div class="detail-label">Last Contact</div><div class="detail-value mono">' + (d.last_seen ? new Date(d.last_seen).toLocaleString([], tzOpts()) : '—') + '</div></div>' +
                 '<div class="detail-item"><div class="detail-label">Total Sightings</div><div class="detail-value highlight">' + d.total_sightings + '</div></div>' +
                 '<div class="detail-item"><div class="detail-label">Signal Strength</div><div class="detail-value">' + rssiDisplay + '</div></div>' +
                 '<div class="detail-item full"><div class="detail-label">Behavioral Pattern</div><div class="detail-value">' + (data.pattern || 'Insufficient data') + '</div></div>' +
@@ -1949,7 +1979,7 @@ HTML_TEMPLATE = """
 
         function renderHourlyHeatmap(hourlyData) {
             if (!hourlyData || Object.keys(hourlyData).length === 0) return '<div style="color: var(--text-muted); font-size: 0.75rem; text-align: center; padding: 1rem 0;">No data</div>';
-            var offset = -(new Date().getTimezoneOffset() / 60);
+            var offset = tzOffsetHours();
             var shifted = {};
             for (var h in hourlyData) {
                 var localHour = ((parseInt(h) + offset) % 24 + 24) % 24;
