@@ -17,14 +17,17 @@ services:
     # environment:
     #   - PUID=1000            # Match your host user: id -u
     #   - PGID=1000            # Match your host group: id -g
-    #   - TZ=Europe/London     # Set container timezone
+    #   - TZ=America/Los_Angeles  # IANA timezone for dashboard timestamps (use an
+    #                             # exact IANA name; defaults to browser local time)
+    #   - BLUEHOOD_WEB_PORT=8080  # Web dashboard port (handy in host network mode)
     #   - BLUEHOOD_ADAPTER=hci0
     #   - BLUEHOOD_CLASSIC_ADAPTER=hci1
     #   - BLUEHOOD_HEARTBEAT_URL=https://hc-ping.com/your-uuid  # Heartbeat check-in URL
     #   - BLUEHOOD_HEARTBEAT_INTERVAL=300                        # Heartbeat interval in seconds
     #   - BLUEHOOD_PRUNE_DAYS=90                                 # Auto-delete sightings older than N days
 
-    # Web dashboard available at http://localhost:8080
+    # Web dashboard available at http://localhost:8080 (or BLUEHOOD_WEB_PORT).
+    # In host network mode, set BLUEHOOD_WEB_PORT to change the listening port.
 
     # Pre-flight check: verify BlueZ is available on the host before starting.
     # If this fails, install BlueZ: sudo apt install bluez && sudo systemctl enable --now bluetooth
